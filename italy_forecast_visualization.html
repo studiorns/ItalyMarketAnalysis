@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Italy Travel Queries Forecast Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+            height: 500px;
+        }
+        .chart-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #555;
+            font-size: 18px;
+        }
+        .data-source {
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            margin-top: 10px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #eee;
+            border: none;
+            cursor: pointer;
+            margin: 0 5px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .insight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .insight-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Italy Travel Queries Forecast Visualization</h1>
+        
+        <div class="insight-box">
+            <div class="insight-title">Key Insight: Enhanced Brand Metrics Impact</div>
+            <p>The enhanced model with weighted Intent (70%) and Consideration (30%) shows significantly more optimistic projections than the ARIMA model. This is primarily due to the dramatic projected improvement in the Intent/Consideration ratio from 0.55 in Q4 2024 to 1.41 in Q4 2025 (+156.4%).</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('forecast-comparison')">Forecast Comparison</button>
+            <button class="tab" onclick="showTab('yoy-growth')">YoY Growth</button>
+            <button class="tab" onclick="showTab('historical-data')">Historical Data</button>
+            <button class="tab" onclick="showTab('brand-metrics')">Brand Metrics</button>
+            <button class="tab" onclick="showTab('arima-forecast')">ARIMA Forecast</button>
+        </div>
+        
+        <div id="forecast-comparison" class="tab-content active">
+            <div class="chart-title">2025 Travel Queries Forecast Comparison</div>
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+            <div class="data-source">Data source: Travel_Queries_Forecast_Italy_Enhanced.csv</div>
+        </div>
+        
+        <div id="yoy-growth" class="tab-content">
+            <div class="chart-title">Year-over-Year Growth by Scenario</div>
+            <div class="chart-container">
+                <canvas id="yoyGrowthChart"></canvas>
+            </div>
+            <div class="data-source">Data source: Italy_Travel_Queries_2025_Forecast.csv</div>
+        </div>
+        
+        <div id="historical-data" class="tab-content">
+            <div class="chart-title">Historical Travel Queries (2020-2024)</div>
+            <div class="chart-container">
+                <canvas id="historicalChart"></canvas>
+            </div>
+            <div class="data-source">Data source: Travel_Queries_Forecast_Italy.csv</div>
+        </div>
+        
+        <div id="brand-metrics" class="tab-content">
+            <div class="chart-title">Brand Metrics and Conversion Ratio</div>
+            <div class="chart-container">
+                <canvas id="brandMetricsChart"></canvas>
+            </div>
+            <div class="data-source">Data source: Travel_Queries_Forecast_Italy_Enhanced.csv</div>
+        </div>
+        
+        <div id="arima-forecast" class="tab-content">
+            <div class="chart-title">ARIMA Forecast with Confidence Intervals</div>
+            <div class="chart-container">
+                <canvas id="arimaChart"></canvas>
+            </div>
+            <div class="data-source">Data source: Travel_Queries_Forecast_Italy_Enhanced.csv</div>
+        </div>
+    </div>
+
+    <script>
+        // Function to show the selected tab
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show the selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to the clicked tab
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+
+        // Chart data
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // 2024 Queries data
+        const queries2024 = [33.13, 29.80, 28.09, 23.28, 19.14, 16.24, 19.43, 23.95, 24.50, 26.81, 24.54, 27.36];
+        
+        // Forecast data for different scenarios
+        const conservativeForecast = [36.36, 32.70, 30.82, 25.54, 21.00, 17.82, 21.32, 26.27, 26.88, 29.42, 26.92, 30.01];
+        const moderateForecast = [38.95, 35.04, 33.03, 27.36, 22.50, 19.09, 22.84, 28.14, 28.80, 31.51, 28.85, 32.16];
+        const ambitiousForecast = [41.41, 37.25, 35.11, 29.10, 23.93, 20.30, 24.29, 29.94, 30.63, 33.51, 30.68, 34.20];
+        
+        // ARIMA forecast data
+        const arimaForecast = [31.47, 30.10, 28.37, 23.51, 19.33, 16.40, 19.62, 24.19, 24.75, 27.08, 24.79, 27.63];
+        const arimaLowerCI = [29.90, 28.60, 26.95, 22.33, 18.36, 15.58, 18.64, 22.98, 23.51, 25.73, 23.55, 26.25];
+        const arimaUpperCI = [33.04, 31.61, 29.79, 24.69, 20.30, 17.22, 20.60, 25.40, 25.99, 28.43, 26.03, 29.01];
+        
+        // YoY growth data
+        const conservativeYoY = [9.8, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7, 9.7];
+        const moderateYoY = [17.6, 17.6, 17.6, 17.5, 17.6, 17.5, 17.6, 17.5, 17.6, 17.5, 17.6, 17.5];
+        const ambitiousYoY = [25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0];
+        const arimaYoY = [-5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        
+        // Historical data (2020-2024)
+        const historical2020 = [8.15, 11.10, 5.21, 3.12, 3.15, 3.39, 3.65, 6.50, 3.54, 3.07, 3.52, 5.62];
+        const historical2021 = [5.29, 4.00, 4.30, 4.50, 4.40, 4.04, 4.49, 6.16, 8.21, 11.98, 13.73, 14.26];
+        const historical2022 = [10.97, 11.78, 13.52, 13.84, 13.51, 8.94, 10.87, 13.51, 16.30, 20.53, 26.47, 22.18];
+        const historical2023 = [28.28, 24.07, 28.34, 23.93, 20.20, 17.46, 21.92, 27.04, 27.63, 26.44, 29.68, 34.51];
+        const historical2024 = [45.73, 29.80, 28.09, 23.28, 19.14, 16.24, 19.43, 23.95, 24.50, 26.81, 24.54, 27.36];
+        
+        // Brand metrics data
+        const quarters = ['Q4 2023', 'Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025'];
+        const consideration = [31.53, 31.00, 30.81, 30.10, 31.41, 31.90, 32.30, 32.60, 33.50];
+        const intent = [23.01, 21.30, 20.00, 14.20, 17.20, 46.50, 46.70, 46.80, 47.20];
+        const conversionRatio = [0.73, 0.69, 0.65, 0.47, 0.55, 1.46, 1.45, 1.44, 1.41];
+
+        // Create the Forecast Comparison Chart
+        const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+        const forecastChart = new Chart(forecastCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: '2024 Actual',
+                        data: queries2024,
+                        borderColor: 'rgba(128, 128, 128, 1)',
+                        backgroundColor: 'rgba(128, 128, 128, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Conservative',
+                        data: conservativeForecast,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Moderate',
+                        data: moderateForecast,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Ambitious',
+                        data: ambitiousForecast,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'ARIMA',
+                        data: arimaForecast,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Indexed Queries'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Italy Travel Queries Forecast Comparison (2025)'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+
+        // Create the YoY Growth Chart
+        const yoyCtx = document.getElementById('yoyGrowthChart').getContext('2d');
+        const yoyGrowthChart = new Chart(yoyCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Conservative',
+                        data: conservativeYoY,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Moderate',
+                        data: moderateYoY,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Ambitious',
+                        data: ambitiousYoY,
+                        backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'ARIMA',
+                        data: arimaYoY,
+                        backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'YoY Growth (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Year-over-Year Growth by Scenario (2025 vs 2024)'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Create the Historical Data Chart
+        const historicalCtx = document.getElementById('historicalChart').getContext('2d');
+        const historicalChart = new Chart(historicalCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: '2020',
+                        data: historical2020,
+                        borderColor: 'rgba(201, 203, 207, 1)',
+                        backgroundColor: 'rgba(201, 203, 207, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: '2021',
+                        data: historical2021,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: '2022',
+                        data: historical2022,
+                        borderColor: 'rgba(255, 205, 86, 1)',
+                        backgroundColor: 'rgba(255, 205, 86, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: '2023',
+                        data: historical2023,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: '2024',
+                        data: historical2024,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Indexed Queries'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Historical Travel Queries (2020-2024)'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+
+        // Create the Brand Metrics Chart
+        const brandMetricsCtx = document.getElementById('brandMetricsChart').getContext('2d');
+        const brandMetricsChart = new Chart(brandMetricsCtx, {
+            type: 'bar',
+            data: {
+                labels: quarters,
+                datasets: [
+                    {
+                        label: 'Consideration',
+                        data: consideration,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Intent',
+                        data: intent,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Intent/Consideration Ratio',
+                        data: conversionRatio,
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Conversion Ratio'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Quarter'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Brand Metrics and Conversion Ratio'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label === 'Intent/Consideration Ratio') {
+                                    return context.dataset.label + ': ' + context.raw.toFixed(2);
+                                } else {
+                                    return context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Create the ARIMA Forecast Chart with Confidence Intervals
+        const arimaCtx = document.getElementById('arimaChart').getContext('2d');
+        const arimaChart = new Chart(arimaCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: '2024 Actual',
+                        data: queries2024,
+                        borderColor: 'rgba(128, 128, 128, 1)',
+                        backgroundColor: 'rgba(128, 128, 128, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'ARIMA Forecast',
+                        data: arimaForecast,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Lower 95% CI',
+                        data: arimaLowerCI,
+                        borderColor: 'rgba(255, 159, 64, 0.5)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Upper 95% CI',
+                        data: arimaUpperCI,
+                        borderColor: 'rgba(255, 159, 64, 0.5)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        fill: '-1',
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Indexed Queries'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'ARIMA Forecast with 95% Confidence Intervals (2025)'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
